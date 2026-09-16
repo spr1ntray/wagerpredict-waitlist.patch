@@ -52,24 +52,23 @@ def should_skip_chapel_for_mainnet(have: int | None) -> bool:
 
 
 def mainnet_bnb_wei(address: str, proxy: str | None = None, timeout: int = 12) -> int | None:
+    if not proxy:
+        return None
     checksum = Web3.to_checksum_address(address)
     payload = {"jsonrpc": "2.0", "id": 1, "method": "eth_getBalance", "params": [checksum, "latest"]}
     headers = {"User-Agent": "Mozilla/5.0", "Content-Type": "application/json"}
-    modes: tuple[str | None, ...] = (None, proxy) if proxy else (None,)
-    for use_proxy in modes:
-        session = requests.Session()
-        session.headers.update(headers)
-        if use_proxy:
-            session.proxies = {"http": use_proxy, "https": use_proxy}
-        for url in MAINNET_RPCS:
-            try:
-                resp = session.post(url, json=payload, timeout=timeout)
-                data = resp.json()
-                result = data.get("result") if isinstance(data, dict) else None
-                if isinstance(result, str) and result.startswith("0x"):
-                    return int(result, 16)
-            except Exception:
-                continue
+    session = requests.Session()
+    session.headers.update(headers)
+    session.proxies = {"http": proxy, "https": proxy}
+    for url in MAINNET_RPCS:
+        try:
+            resp = session.post(url, json=payload, timeout=timeout)
+            data = resp.json()
+            result = data.get("result") if isinstance(data, dict) else None
+            if isinstance(result, str) and result.startswith("0x"):
+                return int(result, 16)
+        except Exception:
+            continue
     return None
 
 
@@ -81,6 +80,8 @@ def claim_chapel_tbnb(
     protect=None,
     timeout: int = 90,
 ) -> str:
+    if not proxy:
+        raise SoftError("invalid_proxy", "Без прокси кран Chapel не вызываем")
     have = mainnet_bnb_wei(address, proxy=proxy)
     if should_skip_chapel_for_mainnet(have):
         raise SoftError(
@@ -95,17 +96,7 @@ def claim_chapel_tbnb(
     )
     if protect is not None:
         token = protect(token) or token
-    last: SoftError | None = None
-    modes: tuple[str | None, ...] = (None, proxy) if proxy else (None,)
-    for use_proxy in modes:
-        try:
-            return _ws_claim(address, token, proxy=use_proxy, timeout=timeout)
-        except SoftError as exc:
-            last = exc
-            if exc.code == "chapel_mainnet_bnb":
-                raise
-            continue
-    raise last or SoftError("chapel_faucet", "Кран BNB Chain не выдал tBNB")
+    return _ws_claim(address, token, proxy=proxy, timeout=timeout)
 
 
 def _ws_claim(address: str, captcha: str, *, proxy: str | None, timeout: int) -> str:

@@ -192,7 +192,7 @@ def test_account_proxy_is_tried_before_hub_ip() -> None:
     from plugin.wager_bot.rpc import send_modes
 
     assert send_modes(None) == (True,)
-    assert send_modes("http://user:pass@1.2.3.4:1080") == (False, True)
+    assert send_modes("http://user:pass@1.2.3.4:1080") == (False,)
 
 
 def test_hard_reject_cools_down_endpoint() -> None:

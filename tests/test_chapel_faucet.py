@@ -35,3 +35,9 @@ def test_chapel_drop_and_mainnet_floor() -> None:
     assert should_skip_chapel_for_mainnet(0) is True
     assert should_skip_chapel_for_mainnet(CHAPEL_FAUCET_MIN_MAINNET_WEI) is False
     assert should_skip_chapel_for_mainnet(CHAPEL_FAUCET_MIN_MAINNET_WEI - 1) is True
+
+
+def test_mainnet_balance_without_proxy_is_not_checked() -> None:
+    from plugin.wager_bot.chapel_faucet import mainnet_bnb_wei
+
+    assert mainnet_bnb_wei("0xE4Ca64D8eC9eaddDB310E68B6f0a67B269a39CDE", proxy=None) is None

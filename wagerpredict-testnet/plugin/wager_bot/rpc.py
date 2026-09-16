@@ -36,9 +36,9 @@ def preferred_write_urls(urls: Sequence[str], sticky: str = "") -> tuple[str, ..
 
 
 def send_modes(proxy: str | None) -> tuple[bool, ...]:
-    """HTTPProvider `direct` flags. Account proxy first so Hub IP is not the only egress."""
+    """HTTPProvider `direct` flags. With an account proxy, never egress from the Hub host."""
     if proxy:
-        return (False, True)
+        return (False,)
     return (True,)
 
 

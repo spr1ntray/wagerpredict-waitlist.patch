@@ -55,9 +55,7 @@ def read_balances(address: str, proxy: str | None, cfg: RunConfig) -> tuple[int,
         proxy_url = normalize_proxy(proxy)
     except ValueError:
         proxy_url = None
-    for direct in (True, False):
-        if not direct and not proxy_url:
-            continue
+    for direct in send_modes(proxy_url):
         for url in ordered_rpc_urls(cfg.rpc_urls):
             try:
                 w3 = Web3(
@@ -102,8 +100,7 @@ class ChainClient:
 
     def _connect_rpc(self) -> Web3:
         last: Exception | None = None
-        modes = (True, False) if self.proxy else (True,)
-        for direct in modes:
+        for direct in send_modes(self.proxy):
             for url in ordered_rpc_urls(self.cfg.rpc_urls):
                 try:
                     w3 = self._make_w3(url, direct=direct)
@@ -320,14 +317,15 @@ class ChainClient:
         last: Exception | None = None
         while time.monotonic() < deadline:
             for url in self._write_urls():
-                try:
-                    w3 = self._make_w3(url, direct=True)
-                    receipt = w3.eth.get_transaction_receipt(tx_hash)
-                    if receipt is not None and getattr(receipt, "blockHash", None):
-                        return receipt
-                except Exception as exc:
-                    last = exc
-                    continue
+                for direct in send_modes(self.proxy):
+                    try:
+                        w3 = self._make_w3(url, direct=direct)
+                        receipt = w3.eth.get_transaction_receipt(tx_hash)
+                        if receipt is not None and getattr(receipt, "blockHash", None):
+                            return receipt
+                    except Exception as exc:
+                        last = exc
+                        continue
             time.sleep(1.2)
         raise TimeoutError(str(last or "receipt_timeout"))
 
@@ -354,9 +352,7 @@ class ChainClient:
         except ValueError:
             idx = -1
         for url in urls[idx + 1 :] + urls[: max(idx, 0)]:
-            for direct in (True, False):
-                if not direct and not self.proxy:
-                    continue
+            for direct in send_modes(self.proxy):
                 try:
                     w3 = self._make_w3(url, direct=direct)
                     if int(w3.eth.chain_id) != CHAIN_ID:
