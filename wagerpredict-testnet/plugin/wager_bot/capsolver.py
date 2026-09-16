@@ -8,12 +8,10 @@ import requests
 from .errors import SoftError
 
 
-def _post(url: str, payload: dict[str, Any], timeout: int = 60, proxy: str | None = None) -> dict[str, Any]:
-    kwargs: dict[str, Any] = {}
-    if proxy:
-        kwargs["proxies"] = {"http": proxy, "https": proxy}
+def _post(url: str, payload: dict[str, Any], timeout: int = 60) -> dict[str, Any]:
+    # Capsolver control plane is not the target site. Account proxy stays inside the task.
     try:
-        resp = requests.post(url, json=payload, timeout=timeout, **kwargs)
+        resp = requests.post(url, json=payload, timeout=timeout)
     except requests.RequestException as exc:
         raise SoftError("capsolver_network", "Не удалось связаться с сервисом проверки") from exc
     try:
@@ -62,13 +60,12 @@ def solve_hcaptcha(
             created = _post(
                 "https://api.capsolver.com/createTask",
                 {"clientKey": key, "task": task},
-                proxy=proxy,
             )
             task_id = created.get("taskId")
             if not task_id:
                 last = SoftError("capsolver_error", "Сервис проверки не создал задачу")
                 continue
-            return _poll(key, str(task_id), timeout_seconds=timeout_seconds, proxy=proxy)
+            return _poll(key, str(task_id), timeout_seconds=timeout_seconds)
         except SoftError as exc:
             last = exc
             continue
@@ -111,27 +108,25 @@ def solve_turnstile(
             created = _post(
                 "https://api.capsolver.com/createTask",
                 {"clientKey": key, "task": task},
-                proxy=proxy,
             )
             task_id = created.get("taskId")
             if not task_id:
                 last = SoftError("capsolver_error", "Сервис проверки не создал задачу")
                 continue
-            return _poll(key, str(task_id), timeout_seconds=timeout_seconds, proxy=proxy)
+            return _poll(key, str(task_id), timeout_seconds=timeout_seconds)
         except SoftError as exc:
             last = exc
             continue
     raise last or SoftError("capsolver_error", "Не удалось пройти проверку человека")
 
 
-def _poll(api_key: str, task_id: str, *, timeout_seconds: int, proxy: str | None = None) -> str:
+def _poll(api_key: str, task_id: str, *, timeout_seconds: int) -> str:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         time.sleep(3)
         data = _post(
             "https://api.capsolver.com/getTaskResult",
             {"clientKey": api_key, "taskId": task_id},
-            proxy=proxy,
         )
         status = data.get("status")
         if status == "ready":
