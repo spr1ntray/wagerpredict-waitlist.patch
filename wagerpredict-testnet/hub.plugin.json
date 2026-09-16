@@ -4,7 +4,7 @@
   "contract_version": "SH-SOFTWARE-0.6/4",
   "id": "io.sprintray.wagerpredict-testnet",
   "name": "Wager",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "Тестнет: кран, ставки, vault, бейджи.",
   "author": "sprintray",
   "presentation": {
@@ -54,7 +54,9 @@
       "testnet.bnbchain.org",
       "bsc-dataseed.binance.org",
       "bsc-dataseed1.binance.org",
-      "bsc-dataseed1.bnbchain.org"
+      "bsc-dataseed1.bnbchain.org",
+      "bsc-rpc.publicnode.com",
+      "1rpc.io"
     ],
     "chains": [97],
     "financial_risk": "testnet",

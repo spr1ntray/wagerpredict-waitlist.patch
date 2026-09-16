@@ -3,6 +3,7 @@ from plugin.wager_bot.chapel_faucet import (
     CHAPEL_FAUCET_MIN_MAINNET_WEI,
     chapel_claim_payload,
     classify_chapel_error,
+    should_skip_chapel_for_mainnet,
 )
 
 
@@ -30,3 +31,7 @@ def test_chapel_error_other() -> None:
 def test_chapel_drop_and_mainnet_floor() -> None:
     assert CHAPEL_FAUCET_MIN_MAINNET_WEI == 2_000_000_000_000_000
     assert CHAPEL_FAUCET_DROP_WEI == 300_000_000_000_000_000
+    assert should_skip_chapel_for_mainnet(None) is False
+    assert should_skip_chapel_for_mainnet(0) is True
+    assert should_skip_chapel_for_mainnet(CHAPEL_FAUCET_MIN_MAINNET_WEI) is False
+    assert should_skip_chapel_for_mainnet(CHAPEL_FAUCET_MIN_MAINNET_WEI - 1) is True

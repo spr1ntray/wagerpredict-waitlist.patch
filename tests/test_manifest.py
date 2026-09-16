@@ -11,7 +11,7 @@ def test_contract_and_catalog() -> None:
     manifest = _manifest()
     assert manifest["name"] == "Wager"
     assert manifest["presentation"]["display_name"] == "Wager"
-    assert manifest["version"] == "1.15.0"
+    assert manifest["version"] == "1.16.0"
     assert manifest["presentation"]["description"] == "Кран, ставки, vault и бейджи."
     assert "цепь из hub" not in manifest["presentation"]["description"].lower()
     assert len(manifest["presentation"]["description"]) <= 80
@@ -66,6 +66,8 @@ def test_farm_referral_contract() -> None:
     assert "www.bnbchain.org" in hosts
     assert "testnet.bnbchain.org" in hosts
     assert "bsc-dataseed.binance.org" in hosts
+    assert "bsc-rpc.publicnode.com" in hosts
+    assert "1rpc.io" in hosts
 
 
 def test_inspect_is_read_only() -> None:

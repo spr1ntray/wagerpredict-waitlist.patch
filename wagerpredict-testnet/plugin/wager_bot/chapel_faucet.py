@@ -20,6 +20,8 @@ MAINNET_RPCS = (
     "https://bsc-dataseed.binance.org",
     "https://bsc-dataseed1.binance.org",
     "https://bsc-dataseed1.bnbchain.org",
+    "https://bsc-rpc.publicnode.com",
+    "https://1rpc.io/bnb",
 )
 
 
@@ -45,24 +47,30 @@ def classify_chapel_error(text: str) -> tuple[str, str]:
     return "chapel_faucet", f"Кран BNB Chain: {raw[:160]}"
 
 
-def mainnet_bnb_wei(address: str, proxy: str | None = None, timeout: int = 15) -> int:
+def should_skip_chapel_for_mainnet(have: int | None) -> bool:
+    return have is not None and have < CHAPEL_FAUCET_MIN_MAINNET_WEI
+
+
+def mainnet_bnb_wei(address: str, proxy: str | None = None, timeout: int = 12) -> int | None:
     checksum = Web3.to_checksum_address(address)
     payload = {"jsonrpc": "2.0", "id": 1, "method": "eth_getBalance", "params": [checksum, "latest"]}
-    session = requests.Session()
-    if proxy:
-        session.proxies = {"http": proxy, "https": proxy}
-    last: Exception | None = None
-    for url in MAINNET_RPCS:
-        try:
-            resp = session.post(url, json=payload, timeout=timeout)
-            data = resp.json()
-            result = data.get("result") if isinstance(data, dict) else None
-            if isinstance(result, str) and result.startswith("0x"):
-                return int(result, 16)
-        except Exception as exc:
-            last = exc
-            continue
-    raise SoftError("mainnet_rpc", "Не удалось проверить BNB в BSC mainnet") from last
+    headers = {"User-Agent": "Mozilla/5.0", "Content-Type": "application/json"}
+    modes: tuple[str | None, ...] = (None, proxy) if proxy else (None,)
+    for use_proxy in modes:
+        session = requests.Session()
+        session.headers.update(headers)
+        if use_proxy:
+            session.proxies = {"http": use_proxy, "https": use_proxy}
+        for url in MAINNET_RPCS:
+            try:
+                resp = session.post(url, json=payload, timeout=timeout)
+                data = resp.json()
+                result = data.get("result") if isinstance(data, dict) else None
+                if isinstance(result, str) and result.startswith("0x"):
+                    return int(result, 16)
+            except Exception:
+                continue
+    return None
 
 
 def claim_chapel_tbnb(
@@ -74,7 +82,7 @@ def claim_chapel_tbnb(
     timeout: int = 90,
 ) -> str:
     have = mainnet_bnb_wei(address, proxy=proxy)
-    if have < CHAPEL_FAUCET_MIN_MAINNET_WEI:
+    if should_skip_chapel_for_mainnet(have):
         raise SoftError(
             "chapel_mainnet_bnb",
             "Кран Chapel требует ≥0.002 BNB в BSC mainnet на этом кошельке",
@@ -87,7 +95,17 @@ def claim_chapel_tbnb(
     )
     if protect is not None:
         token = protect(token) or token
-    return _ws_claim(address, token, proxy=proxy, timeout=timeout)
+    last: SoftError | None = None
+    modes: tuple[str | None, ...] = (None, proxy) if proxy else (None,)
+    for use_proxy in modes:
+        try:
+            return _ws_claim(address, token, proxy=use_proxy, timeout=timeout)
+        except SoftError as exc:
+            last = exc
+            if exc.code == "chapel_mainnet_bnb":
+                raise
+            continue
+    raise last or SoftError("chapel_faucet", "Кран BNB Chain не выдал tBNB")
 
 
 def _ws_claim(address: str, captcha: str, *, proxy: str | None, timeout: int) -> str:
