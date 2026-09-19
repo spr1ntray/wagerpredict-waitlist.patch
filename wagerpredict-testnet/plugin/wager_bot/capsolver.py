@@ -2,10 +2,31 @@ from __future__ import annotations
 
 import time
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 import requests
 
 from .errors import SoftError
+
+_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+
+
+def capsolver_proxy_value(proxy: str) -> str:
+    parsed = urlparse(proxy)
+    host = parsed.hostname or ""
+    port = int(parsed.port or 80)
+    user = unquote(parsed.username or "")
+    password = unquote(parsed.password or "")
+    if user:
+        return f"http:{host}:{port}:{user}:{password}"
+    return f"http:{host}:{port}"
+
+
+def _capsolver_soft_error(data: dict[str, Any]) -> SoftError:
+    desc = str(data.get("errorDescription") or data.get("errorCode") or "").strip()
+    if desc:
+        return SoftError("capsolver_error", f"Сервис проверки: {desc[:160]}")
+    return SoftError("capsolver_error", "Сервис проверки не принял задачу")
 
 
 def _post(url: str, payload: dict[str, Any], timeout: int = 60) -> dict[str, Any]:
@@ -18,8 +39,8 @@ def _post(url: str, payload: dict[str, Any], timeout: int = 60) -> dict[str, Any
         data = resp.json()
     except Exception:
         data = {"raw": (resp.text or "")[:200], "httpStatus": resp.status_code}
-    if isinstance(data, dict) and data.get("errorId"):
-        raise SoftError("capsolver_error", "Сервис проверки не принял задачу")
+    if isinstance(data, dict) and int(data.get("errorId") or 0) > 0:
+        raise _capsolver_soft_error(data)
     if resp.status_code >= 400:
         raise SoftError("capsolver_http", "Сервис проверки вернул ошибку")
     return data if isinstance(data, dict) else {"raw": data}
@@ -42,17 +63,24 @@ def solve_hcaptcha(
             "type": "HCaptchaTaskProxyLess",
             "websiteURL": page_url,
             "websiteKey": site_key,
-        }
+            "userAgent": _UA,
+        },
+        {
+            "type": "HCaptchaTaskProxyless",
+            "websiteURL": page_url,
+            "websiteKey": site_key,
+            "userAgent": _UA,
+        },
     ]
     if proxy:
-        tasks.insert(
-            0,
+        tasks.append(
             {
                 "type": "HCaptchaTask",
                 "websiteURL": page_url,
                 "websiteKey": site_key,
-                "proxy": proxy.replace("http://", "").replace("https://", ""),
-            },
+                "userAgent": _UA,
+                "proxy": capsolver_proxy_value(proxy),
+            }
         )
     last: Exception | None = None
     for task in tasks:
@@ -92,14 +120,13 @@ def solve_turnstile(
         }
     ]
     if proxy:
-        tasks.insert(
-            0,
+        tasks.append(
             {
                 "type": "AntiTurnstileTask",
                 "websiteURL": page_url,
                 "websiteKey": site_key,
-                "proxy": proxy.replace("http://", "").replace("https://", ""),
-            },
+                "proxy": capsolver_proxy_value(proxy),
+            }
         )
 
     last: Exception | None = None
@@ -136,5 +163,5 @@ def _poll(api_key: str, task_id: str, *, timeout_seconds: int) -> str:
                 raise SoftError("capsolver_empty", "Проверка человека вернула пустой ответ")
             return str(token)
         if status and status not in {"idle", "processing"}:
-            raise SoftError("capsolver_error", "Проверка человека завершилась ошибкой")
+            raise _capsolver_soft_error(data if isinstance(data, dict) else {})
     raise SoftError("capsolver_timeout", "Проверка человека не успела завершиться")

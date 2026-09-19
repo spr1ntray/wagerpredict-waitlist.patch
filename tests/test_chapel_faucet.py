@@ -37,6 +37,15 @@ def test_chapel_drop_and_mainnet_floor() -> None:
     assert should_skip_chapel_for_mainnet(CHAPEL_FAUCET_MIN_MAINNET_WEI - 1) is True
 
 
+def test_capsolver_proxy_format() -> None:
+    from plugin.wager_bot.capsolver import capsolver_proxy_value
+
+    assert (
+        capsolver_proxy_value("http://user:pass@1.2.3.4:1080")
+        == "http:1.2.3.4:1080:user:pass"
+    )
+
+
 def test_mainnet_balance_without_proxy_is_not_checked() -> None:
     from plugin.wager_bot.chapel_faucet import mainnet_bnb_wei
 
