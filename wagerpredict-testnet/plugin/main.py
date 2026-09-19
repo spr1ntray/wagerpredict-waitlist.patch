@@ -405,6 +405,72 @@ def _bootstrap_account(
     return "ok", meta
 
 
+def _top_up_gas(
+    context: HubContext,
+    account: HubAccount,
+    chain: ChainClient,
+    http: ProjectHttp,
+    *,
+    capsolver_key: str,
+    proxy: str | None,
+    pace: AccountPace,
+) -> None:
+    if chain.native_wei() >= MIN_GAS_WEI:
+        return
+    context.account_state(
+        account.id,
+        status="running",
+        stage="faucet_chapel",
+        progress=0.36,
+        message="Запрашиваем tBNB с крана BNB Chain",
+    )
+    pace.think(context.check_cancelled)
+    chapel_error: SoftError | None = None
+    try:
+        chapel_status = claim_chapel_tbnb(
+            address=chain.address,
+            capsolver_key=capsolver_key,
+            proxy=proxy,
+            protect=context.protect_secret,
+        )
+    except SoftError as exc:
+        if exc.code == "chapel_mainnet_bnb":
+            raise
+        chapel_error = exc
+        chapel_status = ""
+    if chapel_status == "claimed" and chain.wait_native(CHAPEL_FAUCET_DROP_WEI):
+        return
+    if chain.native_wei() >= MIN_GAS_WEI:
+        return
+    context.account_state(
+        account.id,
+        status="running",
+        stage="faucet_gas",
+        progress=0.40,
+        message="Запрашиваем тестовый газ",
+    )
+    pace.think(context.check_cancelled)
+    try:
+        gas_status = claim_gas(
+            http,
+            address=chain.address,
+            capsolver_key=capsolver_key,
+            proxy=proxy,
+            protect=context.protect_secret,
+        )
+        if gas_status == "claimed":
+            chain.wait_native(FAUCET_GAS_WEI)
+        elif chain.native_wei() < MIN_GAS_WEI:
+            chain.wait_native(MIN_GAS_WEI, attempts=8)
+    except SoftError:
+        pass
+    if chain.native_wei() >= MIN_GAS_WEI:
+        return
+    if chapel_error is not None:
+        raise chapel_error
+    raise SoftError("gas_not_received", "Мало tBNB, кран BNB Chain не пополнил кошелёк")
+
+
 def _farm_onchain(
     context: HubContext,
     account: HubAccount,
@@ -431,54 +497,15 @@ def _farm_onchain(
                 message="Аккаунт уже в сети, работаем с текущим балансом",
             )
         if chain.native_wei() < MIN_GAS_WEI:
-            context.account_state(
-                account.id,
-                status="running",
-                stage="faucet_gas",
-                progress=0.34,
-                message="Запрашиваем тестовый газ",
-            )
-            pace.think(context.check_cancelled)
-            gas_status = claim_gas(
+            _top_up_gas(
+                context,
+                account,
+                chain,
                 http,
-                address=chain.address,
                 capsolver_key=capsolver_key,
                 proxy=proxy,
-                protect=context.protect_secret,
+                pace=pace,
             )
-            if gas_status == "claimed":
-                got_gas = chain.wait_native(FAUCET_GAS_WEI)
-            else:
-                got_gas = chain.native_wei() >= MIN_GAS_WEI or chain.wait_native(MIN_GAS_WEI, attempts=8)
-            if not got_gas:
-                try:
-                    leftover_gas = chain.native_wei()
-                except SoftError:
-                    leftover_gas = 0
-                if leftover_gas < MIN_GAS_WEI:
-                    context.account_state(
-                        account.id,
-                        status="running",
-                        stage="faucet_chapel",
-                        progress=0.38,
-                        message="Запрашиваем tBNB с крана BNB Chain",
-                    )
-                    pace.think(context.check_cancelled)
-                    chapel_status = claim_chapel_tbnb(
-                        address=chain.address,
-                        capsolver_key=capsolver_key,
-                        proxy=proxy,
-                        protect=context.protect_secret,
-                    )
-                    if chapel_status == "claimed":
-                        got_gas = chain.wait_native(CHAPEL_FAUCET_DROP_WEI)
-                    else:
-                        got_gas = chain.native_wei() >= MIN_GAS_WEI
-                    if not got_gas:
-                        raise SoftError(
-                            "gas_not_received",
-                            "Мало tBNB, кран BNB Chain не пополнил кошелёк",
-                        )
 
         needed_usdc = usdc_to_raw(max(cfg.bet_usdc_from * cfg.bets_from, MIN_VAULT_USDC, MIN_BET_USDC))
         if chain.usdc_raw() < min(needed_usdc, usdc_to_raw(100)):
