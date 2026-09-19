@@ -37,6 +37,16 @@ def test_chapel_drop_and_mainnet_floor() -> None:
     assert should_skip_chapel_for_mainnet(CHAPEL_FAUCET_MIN_MAINNET_WEI - 1) is True
 
 
+def test_capsolver_unsupported_service() -> None:
+    from plugin.wager_bot.capsolver import is_unsupported_service
+    from plugin.wager_bot.errors import SoftError
+
+    assert is_unsupported_service(
+        SoftError("capsolver_error", "Сервис проверки: We don't support this service. Please contact support if you have any questions.")
+    )
+    assert is_unsupported_service(RuntimeError("network")) is False
+
+
 def test_capsolver_proxy_format() -> None:
     from plugin.wager_bot.capsolver import capsolver_proxy_value
 

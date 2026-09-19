@@ -18,6 +18,7 @@ from plugin.wager_bot.config import (
     VAULT,
     RunConfig,
 )
+from plugin.wager_bot.capsolver import is_unsupported_service
 from plugin.wager_bot.errors import BlockedError, SoftError
 from plugin.wager_bot.chapel_faucet import CHAPEL_FAUCET_DROP_WEI, claim_chapel_tbnb
 from plugin.wager_bot.faucet import claim_gas, claim_usdc
@@ -436,7 +437,13 @@ def _top_up_gas(
     except SoftError as exc:
         if exc.code == "chapel_mainnet_bnb":
             raise
-        chapel_error = exc
+        if is_unsupported_service(exc):
+            chapel_error = SoftError(
+                "chapel_captcha",
+                "Capsolver не решает капчу крана BNB Chain. Склейми tBNB вручную на www.bnbchain.org/en/testnet-faucet (нужно ≥0.002 BNB в mainnet)",
+            )
+        else:
+            chapel_error = exc
         chapel_status = ""
     if chapel_status == "claimed" and chain.wait_native(CHAPEL_FAUCET_DROP_WEI):
         return

@@ -22,6 +22,11 @@ def capsolver_proxy_value(proxy: str) -> str:
     return f"http:{host}:{port}"
 
 
+def is_unsupported_service(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    return "don't support this service" in text or "not support this service" in text
+
+
 def _capsolver_soft_error(data: dict[str, Any]) -> SoftError:
     desc = str(data.get("errorDescription") or data.get("errorCode") or "").strip()
     if desc:
@@ -96,6 +101,8 @@ def solve_hcaptcha(
             return _poll(key, str(task_id), timeout_seconds=timeout_seconds)
         except SoftError as exc:
             last = exc
+            if is_unsupported_service(exc):
+                raise
             continue
     raise last or SoftError("capsolver_error", "Не удалось пройти проверку человека")
 
