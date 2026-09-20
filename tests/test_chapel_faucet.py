@@ -47,6 +47,21 @@ def test_capsolver_unsupported_service() -> None:
     assert is_unsupported_service(RuntimeError("network")) is False
 
 
+def test_twocaptcha_proxy_pair() -> None:
+    from plugin.wager_bot.twocaptcha import twocaptcha_proxy_pair
+
+    value, kind = twocaptcha_proxy_pair("http://user:pass@1.2.3.4:1080")
+    assert kind == "HTTP"
+    assert value == "user:pass@1.2.3.4:1080"
+
+
+def test_farm_config_reads_twocaptcha_key() -> None:
+    from plugin.wager_bot.options import farm_config
+
+    cfg = farm_config({"twocaptcha_api_key": "abcd1234"})
+    assert cfg.twocaptcha_api_key == "abcd1234"
+
+
 def test_capsolver_proxy_format() -> None:
     from plugin.wager_bot.capsolver import capsolver_proxy_value
 

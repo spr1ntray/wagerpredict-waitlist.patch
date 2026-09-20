@@ -8,7 +8,8 @@ from urllib.parse import unquote, urlparse
 import requests
 from web3 import Web3
 
-from .capsolver import solve_hcaptcha
+from .capsolver import is_unsupported_service, solve_hcaptcha
+from .twocaptcha import solve_hcaptcha_2captcha
 from .errors import SoftError
 
 CHAPEL_FAUCET_WS = "wss://testnet.bnbchain.org/faucet-smart/api"
@@ -79,6 +80,7 @@ def claim_chapel_tbnb(
     proxy: str | None = None,
     protect=None,
     timeout: int = 90,
+    twocaptcha_key: str = "",
 ) -> str:
     if not proxy:
         raise SoftError("invalid_proxy", "Без прокси кран Chapel не вызываем")
@@ -88,15 +90,43 @@ def claim_chapel_tbnb(
             "chapel_mainnet_bnb",
             "Кран Chapel требует ≥0.002 BNB в BSC mainnet на этом кошельке",
         )
-    token = solve_hcaptcha(
-        capsolver_key,
-        site_key=CHAPEL_HCAPTCHA_SITEKEY,
-        page_url=CHAPEL_FAUCET_PAGE,
+    token = _solve_chapel_hcaptcha(
+        capsolver_key=capsolver_key,
+        twocaptcha_key=twocaptcha_key,
         proxy=proxy,
     )
     if protect is not None:
         token = protect(token) or token
     return _ws_claim(address, token, proxy=proxy, timeout=timeout)
+
+
+def _solve_chapel_hcaptcha(*, capsolver_key: str, twocaptcha_key: str, proxy: str | None) -> str:
+    capsolver_exc: SoftError | None = None
+    try:
+        return solve_hcaptcha(
+            capsolver_key,
+            site_key=CHAPEL_HCAPTCHA_SITEKEY,
+            page_url=CHAPEL_FAUCET_PAGE,
+            proxy=proxy,
+        )
+    except SoftError as exc:
+        capsolver_exc = exc
+    two_key = twocaptcha_key.strip()
+    if two_key:
+        return solve_hcaptcha_2captcha(
+            two_key,
+            site_key=CHAPEL_HCAPTCHA_SITEKEY,
+            page_url=CHAPEL_FAUCET_PAGE,
+            proxy=proxy,
+        )
+    if capsolver_exc is not None and is_unsupported_service(capsolver_exc):
+        raise SoftError(
+            "chapel_captcha",
+            "Capsolver не решает капчу крана BNB Chain. Вставь ключ 2Captcha в настройках запуска или склейми tBNB вручную",
+        )
+    if capsolver_exc is not None:
+        raise capsolver_exc
+    raise SoftError("chapel_captcha", "Не удалось решить капчу крана BNB Chain")
 
 
 def _ws_claim(address: str, captcha: str, *, proxy: str | None, timeout: int) -> str:

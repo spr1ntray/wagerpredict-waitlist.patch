@@ -41,6 +41,7 @@ def farm_config(options: dict[str, Any]) -> RunConfig:
     pause_to = integer_option(options, "pause_to_ms", 2400, 200, 8000)
     if pause_from > pause_to:
         raise ValueError("pause_range")
+    two_key = str(options.get("twocaptcha_api_key") or "").strip()
     return RunConfig(
         bets_from=bets_from,
         bets_to=bets_to,
@@ -51,6 +52,7 @@ def farm_config(options: dict[str, Any]) -> RunConfig:
         vault_tier=VAULT_TIERS[tier_name],
         pause_from_ms=pause_from,
         pause_to_ms=pause_to,
+        twocaptcha_api_key=two_key,
     )
 
 

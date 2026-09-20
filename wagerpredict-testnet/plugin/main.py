@@ -415,6 +415,7 @@ def _top_up_gas(
     capsolver_key: str,
     proxy: str | None,
     pace: AccountPace,
+    twocaptcha_key: str = "",
 ) -> None:
     if chain.native_wei() >= MIN_GAS_WEI:
         return
@@ -433,6 +434,7 @@ def _top_up_gas(
             capsolver_key=capsolver_key,
             proxy=proxy,
             protect=context.protect_secret,
+            twocaptcha_key=twocaptcha_key,
         )
     except SoftError as exc:
         if exc.code == "chapel_mainnet_bnb":
@@ -512,6 +514,7 @@ def _farm_onchain(
                 capsolver_key=capsolver_key,
                 proxy=proxy,
                 pace=pace,
+                twocaptcha_key=cfg.twocaptcha_api_key,
             )
 
         needed_usdc = usdc_to_raw(max(cfg.bet_usdc_from * cfg.bets_from, MIN_VAULT_USDC, MIN_BET_USDC))

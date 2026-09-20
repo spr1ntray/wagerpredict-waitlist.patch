@@ -60,4 +60,5 @@ class RunConfig:
     vault_tier: int = 0
     pause_from_ms: int = 800
     pause_to_ms: int = 2400
+    twocaptcha_api_key: str = ""
     rpc_urls: tuple[str, ...] = field(default_factory=lambda: RPC_URLS)

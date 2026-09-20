@@ -4,7 +4,7 @@
   "contract_version": "SH-SOFTWARE-0.6/4",
   "id": "io.sprintray.wagerpredict-testnet",
   "name": "Wager",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "Тестнет: кран, ставки, vault, бейджи.",
   "author": "sprintray",
   "presentation": {
@@ -56,7 +56,8 @@
       "bsc-dataseed1.binance.org",
       "bsc-dataseed1.bnbchain.org",
       "bsc-rpc.publicnode.com",
-      "1rpc.io"
+      "1rpc.io",
+      "2captcha.com"
     ],
     "chains": [97],
     "financial_risk": "testnet",
@@ -108,6 +109,16 @@
               "group": "Выполнение",
               "order": 0,
               "unit": "аккаунтов"
+            }
+          },
+          "twocaptcha_api_key": {
+            "type": "string",
+            "title": "Ключ 2Captcha",
+            "description": "Capsolver не решает hCaptcha крана BNB Chain. 2Captcha решает её людьми. Без ключа tBNB нужно клеймить вручную.",
+            "default": "",
+            "x-ui": {
+              "group": "Выполнение",
+              "order": 1
             }
           },
           "bets_from": {
