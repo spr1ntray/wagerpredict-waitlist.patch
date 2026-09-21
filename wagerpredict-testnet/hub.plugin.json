@@ -4,7 +4,7 @@
   "contract_version": "SH-SOFTWARE-0.6/4",
   "id": "io.sprintray.wagerpredict-testnet",
   "name": "Wager",
-  "version": "1.23.1",
+  "version": "1.23.2",
   "description": "Тестнет: кран, ставки, vault, бейджи.",
   "author": "sprintray",
   "presentation": {
@@ -106,10 +106,10 @@
           "account_concurrency": {
             "type": "integer",
             "title": "Параллельные аккаунты",
-            "description": "Сначала цепь строго parent-first, затем фарм всех выбранных аккаунтов сразу в этом числе потоков.",
-            "default": 5,
+            "description": "Сначала цепь строго parent-first, затем фарм всех выбранных аккаунтов сразу в этом числе потоков. Для AdsPower не больше 5.",
+            "default": 3,
             "minimum": 1,
-            "maximum": 20,
+            "maximum": 5,
             "multipleOf": 1,
             "x-ui": {
               "group": "Выполнение",
@@ -314,9 +314,9 @@
             "type": "integer",
             "title": "Параллельные аккаунты",
             "description": "Сколько профилей проверять одновременно.",
-            "default": 5,
+            "default": 3,
             "minimum": 1,
-            "maximum": 20,
+            "maximum": 5,
             "multipleOf": 1,
             "x-ui": {
               "group": "Выполнение",

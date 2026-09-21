@@ -11,7 +11,7 @@ def test_contract_and_catalog() -> None:
     manifest = _manifest()
     assert manifest["name"] == "Wager"
     assert manifest["presentation"]["display_name"] == "Wager"
-    assert manifest["version"] == "1.23.1"
+    assert manifest["version"] == "1.23.2"
     assert manifest["presentation"]["description"] == "Кран, ставки, vault и бейджи."
     assert "цепь из hub" not in manifest["presentation"]["description"].lower()
     assert len(manifest["presentation"]["description"]) <= 80
@@ -37,7 +37,12 @@ def test_farm_referral_contract() -> None:
     assert "vault_usdc" not in keys
     assert farm["options"]["properties"]["vault_usdc_from"]["maximum"] == 15000
     assert farm["options"]["properties"]["vault_usdc_to"]["maximum"] == 15000
-    assert farm["options"]["properties"]["account_concurrency"]["maximum"] == 20
+    assert farm["options"]["properties"]["account_concurrency"]["minimum"] == 1
+    assert farm["options"]["properties"]["account_concurrency"]["maximum"] == 5
+    assert farm["options"]["properties"]["account_concurrency"]["multipleOf"] == 1
+    default_conc = farm["options"]["properties"]["account_concurrency"]["default"]
+    assert isinstance(default_conc, int)
+    assert 1 <= default_conc <= 5
     assert farm["options"]["properties"]["bets_from"]["maximum"] == 30
     assert farm["options"]["properties"]["bets_to"]["maximum"] == 30
     assert farm["options"]["properties"]["bets_from"]["default"] == 10

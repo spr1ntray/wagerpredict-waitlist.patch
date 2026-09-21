@@ -172,7 +172,7 @@ def _run_levels(context: HubContext, cfg: RunConfig, *, mode: str) -> dict[str, 
 def _wave_size(context: HubContext, accounts: tuple[HubAccount, ...] | list[HubAccount]) -> int:
     if not accounts:
         return 0
-    return max(1, min(int(getattr(context, "account_concurrency", 1) or 1), len(accounts)))
+    return max(1, min(int(getattr(context, "account_concurrency", 1) or 1), 5, len(accounts)))
 
 
 def _map_accounts(context: HubContext, worker: Any, accounts: tuple[HubAccount, ...] | list[HubAccount]) -> None:
