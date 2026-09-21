@@ -11,7 +11,7 @@ def test_contract_and_catalog() -> None:
     manifest = _manifest()
     assert manifest["name"] == "Wager"
     assert manifest["presentation"]["display_name"] == "Wager"
-    assert manifest["version"] == "1.23.0"
+    assert manifest["version"] == "1.23.1"
     assert manifest["presentation"]["description"] == "Кран, ставки, vault и бейджи."
     assert "цепь из hub" not in manifest["presentation"]["description"].lower()
     assert len(manifest["presentation"]["description"]) <= 80
@@ -78,6 +78,10 @@ def test_farm_referral_contract() -> None:
     assert "adspower_profile" in farm["resources"]["account"]
     assert "adspower_api" in farm["resources"]["settings"]
     assert farm["options"]["properties"]["twocaptcha_api_key"]["type"] == "string"
+    assert farm["options"]["properties"]["twocaptcha_api_key"]["maxLength"] == 128
+    for name, prop in farm["options"]["properties"].items():
+        if prop.get("type") == "string" and "enum" not in prop:
+            assert "maxLength" in prop, name
 
 
 def test_inspect_is_read_only() -> None:
