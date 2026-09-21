@@ -11,7 +11,7 @@ def test_contract_and_catalog() -> None:
     manifest = _manifest()
     assert manifest["name"] == "Wager"
     assert manifest["presentation"]["display_name"] == "Wager"
-    assert manifest["version"] == "1.22.0"
+    assert manifest["version"] == "1.23.0"
     assert manifest["presentation"]["description"] == "Кран, ставки, vault и бейджи."
     assert "цепь из hub" not in manifest["presentation"]["description"].lower()
     assert len(manifest["presentation"]["description"]) <= 80
@@ -69,6 +69,14 @@ def test_farm_referral_contract() -> None:
     assert "bsc-rpc.publicnode.com" in hosts
     assert "1rpc.io" in hosts
     assert "2captcha.com" in hosts
+    assert "faucet.quicknode.com" in hosts
+    assert "local.adspower.net" in hosts
+    assert _manifest()["permissions"]["browser"] is True
+    assert "adspower" in _manifest()["permissions"]["local_services"]
+    assert "adspower_profile" in farm["permissions"]["secrets"]
+    assert "adspower_api_key" in farm["permissions"]["secrets"]
+    assert "adspower_profile" in farm["resources"]["account"]
+    assert "adspower_api" in farm["resources"]["settings"]
     assert farm["options"]["properties"]["twocaptcha_api_key"]["type"] == "string"
 
 

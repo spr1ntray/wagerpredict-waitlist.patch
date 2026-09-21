@@ -4,7 +4,7 @@
   "contract_version": "SH-SOFTWARE-0.6/4",
   "id": "io.sprintray.wagerpredict-testnet",
   "name": "Wager",
-  "version": "1.22.0",
+  "version": "1.23.0",
   "description": "Тестнет: кран, ставки, vault, бейджи.",
   "author": "sprintray",
   "presentation": {
@@ -37,7 +37,9 @@
       "evm_private_key",
       "proxy",
       "email",
-      "capsolver_api_key"
+      "capsolver_api_key",
+      "adspower_profile",
+      "adspower_api_key"
     ],
     "network": [
       "api.predictprotocol.app",
@@ -57,12 +59,14 @@
       "bsc-dataseed1.bnbchain.org",
       "bsc-rpc.publicnode.com",
       "1rpc.io",
-      "2captcha.com"
+      "2captcha.com",
+      "faucet.quicknode.com",
+      "local.adspower.net"
     ],
     "chains": [97],
     "financial_risk": "testnet",
-    "browser": false,
-    "local_services": []
+    "browser": true,
+    "local_services": ["adspower"]
   },
   "actions": [
     {
@@ -76,12 +80,14 @@
           "evm_private_key",
           "proxy",
           "email",
-          "capsolver_api_key"
+          "capsolver_api_key",
+          "adspower_profile",
+          "adspower_api_key"
         ]
       },
       "resources": {
-        "account": ["private_key", "proxy", "email"],
-        "settings": ["capsolver"]
+        "account": ["private_key", "proxy", "email", "adspower_profile"],
+        "settings": ["capsolver", "adspower_api"]
       },
       "referral": {
         "mode": "project_runtime",
