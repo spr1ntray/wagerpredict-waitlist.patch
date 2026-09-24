@@ -19,21 +19,27 @@ _PROFILE_LOCKS: dict[str, threading.Lock] = {}
 _LAST_START_MONO = 0.0
 _MIN_START_INTERVAL_SEC = 1.8
 _ADDRESS_SELECTORS = (
+    'input[placeholder="0x..."]',
+    'input[placeholder*="0x"]',
     'input[name="address"]',
     'input[placeholder*="address" i]',
     'input[placeholder*="wallet" i]',
-    'input[type="text"]',
-    "textarea",
 )
 _CLAIM_SELECTORS = (
     'button:has-text("Continue")',
     'button:has-text("Claim")',
     'button:has-text("Request")',
     'button:has-text("Drip")',
+    'button:has-text("Get tokens")',
     'button:has-text("Get")',
-    'button[type="submit"]',
     '[role="button"]:has-text("Continue")',
     '[role="button"]:has-text("Claim")',
+)
+_COOKIE_SELECTORS = (
+    'button:has-text("Accept")',
+    'button:has-text("Decline")',
+    'button:has-text("Accept all")',
+    'button:has-text("I agree")',
 )
 
 
@@ -178,59 +184,85 @@ def _open_and_claim(ws_url: str, address: str) -> None:
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(QUICKNODE_FAUCET_URL, wait_until="domcontentloaded", timeout=timeout_ms)
         page.bring_to_front()
-        filled = False
-        for selector in _ADDRESS_SELECTORS:
-            try:
-                locator = page.locator(selector).first
-                locator.wait_for(state="visible", timeout=timeout_ms)
-                locator.fill(address, timeout=timeout_ms)
-                filled = True
+        time.sleep(1.2)
+        _dismiss_cookies(page)
+        if not _fill_address(page, address, timeout_ms):
+            raise SoftError("quicknode_faucet", "Не заполнилось поле адреса QuickNode")
+        _select_bnb_testnet(page)
+        time.sleep(0.8)
+        clicked = False
+        for _ in range(6):
+            _dismiss_cookies(page)
+            if _click_enabled_claim(page, 8_000):
+                clicked = True
+                time.sleep(8)
+                _click_enabled_claim(page, 4_000)
                 break
-            except Exception:
-                continue
-        if not filled:
-            raise SoftError("quicknode_faucet", "На странице QuickNode нет поля адреса")
-        time.sleep(0.6)
-        for attempt in range(5):
-            try:
-                if page.url.rstrip("/") != QUICKNODE_FAUCET_URL.rstrip("/"):
-                    page.goto(QUICKNODE_FAUCET_URL, wait_until="domcontentloaded", timeout=timeout_ms)
-            except Exception:
-                pass
-            _click_claim(page, 8000)
-            time.sleep(10)
-            _click_claim(page, 6000)
-            time.sleep(2.5)
-            if attempt < 4:
-                try:
-                    page.reload(wait_until="domcontentloaded", timeout=timeout_ms)
-                    time.sleep(0.4)
-                    for selector in _ADDRESS_SELECTORS:
-                        try:
-                            locator = page.locator(selector).first
-                            locator.wait_for(state="visible", timeout=3000)
-                            locator.fill(address, timeout=3000)
-                            break
-                        except Exception:
-                            continue
-                except Exception:
-                    time.sleep(1.5)
+            time.sleep(1.2)
+        if not clicked:
+            raise SoftError("quicknode_faucet", "Кнопка Continue на QuickNode неактивна")
+        time.sleep(6)
         try:
             page.close()
         except Exception:
             pass
 
 
-def _click_claim(page: Any, timeout_ms: int) -> None:
+def _dismiss_cookies(page: Any) -> None:
+    for selector in _COOKIE_SELECTORS:
+        try:
+            locator = page.locator(selector).first
+            if locator.count() == 0:
+                continue
+            locator.click(timeout=2_000)
+            time.sleep(0.4)
+            return
+        except Exception:
+            continue
+
+
+def _fill_address(page: Any, address: str, timeout_ms: int) -> bool:
+    for selector in _ADDRESS_SELECTORS:
+        try:
+            locator = page.locator(selector).first
+            locator.wait_for(state="visible", timeout=timeout_ms)
+            locator.click(timeout=3_000)
+            locator.fill("")
+            locator.fill(address, timeout=timeout_ms)
+            value = locator.input_value(timeout=2_000)
+            if value and value.lower() == address.lower():
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def _select_bnb_testnet(page: Any) -> None:
+    try:
+        combo = page.get_by_text("BNB Testnet", exact=False).last
+        combo.click(timeout=3_000)
+        time.sleep(0.3)
+        page.get_by_role("option", name="BNB Testnet").click(timeout=3_000)
+    except Exception:
+        try:
+            page.locator("text=BNB Testnet").last.click(timeout=2_000)
+        except Exception:
+            return
+
+
+def _click_enabled_claim(page: Any, timeout_ms: int) -> bool:
     for selector in _CLAIM_SELECTORS:
         try:
             locator = page.locator(selector).first
             locator.wait_for(state="visible", timeout=timeout_ms)
+            if locator.is_disabled():
+                continue
             locator.scroll_into_view_if_needed()
-            locator.click(timeout=timeout_ms, force=True)
-            return
+            locator.click(timeout=timeout_ms)
+            return True
         except Exception:
             continue
+    return False
 
 
 def _wait_native(get_native: Callable[[], int], start: int, min_wei: int, *, timeout: int) -> bool:

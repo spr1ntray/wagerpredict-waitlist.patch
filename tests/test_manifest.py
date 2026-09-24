@@ -11,7 +11,7 @@ def test_contract_and_catalog() -> None:
     manifest = _manifest()
     assert manifest["name"] == "Wager"
     assert manifest["presentation"]["display_name"] == "Wager"
-    assert manifest["version"] == "1.23.2"
+    assert manifest["version"] == "1.23.3"
     assert manifest["presentation"]["description"] == "Кран, ставки, vault и бейджи."
     assert "цепь из hub" not in manifest["presentation"]["description"].lower()
     assert len(manifest["presentation"]["description"]) <= 80

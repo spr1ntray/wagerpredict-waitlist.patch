@@ -5,6 +5,12 @@ from plugin.wager_bot.adspower_quicknode import (
 )
 
 
+def test_address_selector_matches_quicknode_placeholder() -> None:
+    from plugin.wager_bot.adspower_quicknode import _ADDRESS_SELECTORS
+
+    assert any("0x" in selector for selector in _ADDRESS_SELECTORS)
+
+
 def test_quicknode_url_is_bnb_testnet() -> None:
     assert "binance-smart-chain" in QUICKNODE_FAUCET_URL
     assert "bnb-testnet" in QUICKNODE_FAUCET_URL

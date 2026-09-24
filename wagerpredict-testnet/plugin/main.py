@@ -439,6 +439,7 @@ def _top_up_gas(
             message="Клеим tBNB через QuickNode в AdsPower",
         )
         pace.think(context.check_cancelled)
+        ads_error: SoftError | None = None
         try:
             claim_quicknode_tbnb(
                 address=chain.address,
@@ -447,10 +448,16 @@ def _top_up_gas(
                 get_native=chain.native_wei,
                 min_wei=MIN_GAS_WEI,
             )
-        except SoftError:
-            pass
+        except SoftError as exc:
+            ads_error = exc
         if chain.native_wei() >= MIN_GAS_WEI:
             return
+        if ads_error is not None and ads_error.code in {
+            "quicknode_faucet",
+            "adspower_unavailable",
+            "playwright_missing",
+        }:
+            raise ads_error
     context.account_state(
         account.id,
         status="running",
