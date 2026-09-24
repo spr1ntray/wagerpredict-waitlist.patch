@@ -20,7 +20,6 @@ from plugin.wager_bot.config import (
 )
 from plugin.wager_bot.capsolver import is_unsupported_service
 from plugin.wager_bot.errors import BlockedError, SoftError
-from plugin.wager_bot.adspower_quicknode import claim_quicknode_tbnb
 from plugin.wager_bot.chapel_faucet import CHAPEL_FAUCET_DROP_WEI, claim_chapel_tbnb
 from plugin.wager_bot.faucet import claim_gas, claim_usdc
 from plugin.wager_bot.flow import already_linked, farm_status, linked_result, tradable_quote
@@ -420,44 +419,6 @@ def _top_up_gas(
 ) -> None:
     if chain.native_wei() >= MIN_GAS_WEI:
         return
-    profile_id = ""
-    ads_key = ""
-    try:
-        profile_id = str(account.secret("adspower_profile") or "").strip()
-    except Exception:
-        profile_id = ""
-    try:
-        ads_key = str(context.settings.secret("adspower_api") or "").strip()
-    except Exception:
-        ads_key = ""
-    if len(profile_id) >= 4 and len(ads_key) >= 4:
-        context.account_state(
-            account.id,
-            status="running",
-            stage="faucet_quicknode",
-            progress=0.34,
-            message="Клеим tBNB через QuickNode в AdsPower",
-        )
-        pace.think(context.check_cancelled)
-        ads_error: SoftError | None = None
-        try:
-            claim_quicknode_tbnb(
-                address=chain.address,
-                profile_id=profile_id,
-                api_key=ads_key,
-                get_native=chain.native_wei,
-                min_wei=MIN_GAS_WEI,
-            )
-        except SoftError as exc:
-            ads_error = exc
-        if chain.native_wei() >= MIN_GAS_WEI:
-            return
-        if ads_error is not None and ads_error.code in {
-            "quicknode_faucet",
-            "adspower_unavailable",
-            "playwright_missing",
-        }:
-            raise ads_error
     context.account_state(
         account.id,
         status="running",
@@ -573,16 +534,17 @@ def _farm_onchain(
                 proxy=proxy,
                 protect=context.protect_secret,
             )
+            min_usdc = usdc_to_raw(MIN_BET_USDC)
             if usdc_status == "claimed":
-                got_usdc = chain.wait_usdc(usdc_to_raw(1))
+                got_usdc = chain.wait_usdc(min_usdc)
             else:
-                got_usdc = chain.usdc_raw() > 0 or chain.wait_usdc(usdc_to_raw(1), attempts=8)
+                got_usdc = chain.usdc_raw() >= min_usdc or chain.wait_usdc(min_usdc, attempts=8)
             if not got_usdc:
                 try:
                     leftover_usdc = chain.usdc_raw()
                 except SoftError:
                     leftover_usdc = 0
-                if leftover_usdc <= 0:
+                if leftover_usdc < min_usdc:
                     prior = user_bet_count(http, chain.address.lower())
                     if prior >= 10:
                         context.result(
@@ -600,7 +562,7 @@ def _farm_onchain(
                             message="Аккаунт уже отфармлен",
                         )
                         return "succeeded", meta
-                    raise SoftError("usdc_not_received", "Нет USDC и кран не выдал")
+                    raise SoftError("usdc_not_received", "Мало USDC для ставки, кран не выдал")
 
         vault_amount = pick_vault_amount(cfg)
         usdc_now = chain.usdc_raw()
@@ -654,7 +616,15 @@ def _farm_onchain(
                 break
             side, quote = _choose_side(chain, market_id, amount)
             if not tradable_quote(quote):
-                continue
+                small = usdc_to_raw(MIN_BET_USDC)
+                if small < amount:
+                    side, quote = _choose_side(chain, market_id, small)
+                    if tradable_quote(quote):
+                        amount = small
+                    else:
+                        continue
+                else:
+                    continue
             progress = 0.58 + 0.22 * ((placed + 1) / max(1, bets_target))
             context.account_state(
                 account.id,
