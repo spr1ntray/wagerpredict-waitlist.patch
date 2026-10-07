@@ -62,26 +62,3 @@ def pause_ms(low: int, high: int, check_cancelled: _CHECK_CANCEL | None = None) 
         if remaining <= 0:
             return
         time.sleep(min(0.25, remaining))
-
-
-def usdc_to_raw(amount: int | float) -> int:
-    return int(round(float(amount) * (10**6)))
-
-
-def raw_to_usdc(raw: int) -> str:
-    value = int(raw)
-    whole = value // 10**6
-    frac = value % 10**6
-    if frac == 0:
-        return str(whole)
-    text = f"{whole}.{frac:06d}".rstrip("0")
-    return text
-
-
-def wei_to_tbnb(wei: int) -> str:
-    value = int(wei)
-    whole = value // 10**18
-    frac = value % 10**18
-    if frac == 0:
-        return str(whole)
-    return f"{whole}.{frac:018d}".rstrip("0")

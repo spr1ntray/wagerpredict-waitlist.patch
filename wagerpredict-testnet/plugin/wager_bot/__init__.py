@@ -1,1 +1,1 @@
-# Subject logic for Wager Predict testnet.
+# Subject logic for Wager Predict mainnet waitlist.

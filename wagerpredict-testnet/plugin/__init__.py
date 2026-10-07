@@ -1,1 +1,1 @@
-# Wager Predict testnet Soft Hub plugin.
+# Wager Predict Soft Hub plugin — mainnet waitlist registrar.

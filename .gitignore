@@ -2,7 +2,6 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .DS_Store
-dist/
 *.log
 *.har
 *.mov
@@ -10,3 +9,4 @@ dist/
 .env
 .venv/
 venv/
+docs/

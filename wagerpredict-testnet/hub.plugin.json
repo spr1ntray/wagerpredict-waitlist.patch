@@ -4,19 +4,19 @@
   "contract_version": "SH-SOFTWARE-0.6/4",
   "id": "io.sprintray.wagerpredict-testnet",
   "name": "Wager",
-  "version": "1.23.4",
-  "description": "Тестнет: кран, ставки, vault, бейджи.",
+  "version": "1.24.0",
+  "description": "Заявка в очередь mainnet beta Wager Predict по кошельку и почте аккаунта.",
   "author": "sprintray",
   "presentation": {
     "display_name": "Wager",
-    "description": "Кран, ставки, vault и бейджи.",
+    "description": "Подаёт заявку в очередь mainnet beta по кошельку и почте из Hub. Если адрес уже в очереди или в списке — пропускает.",
     "assets": {
       "icon": "assets/icon.png",
       "image": "assets/image.png"
     }
   },
   "catalog": {
-    "sections": ["testnet"]
+    "sections": ["general"]
   },
   "compatibility": {
     "hub": ">=0.6.15",
@@ -36,69 +36,34 @@
     "secrets": [
       "evm_private_key",
       "proxy",
-      "email",
-      "capsolver_api_key",
-      "adspower_profile",
-      "adspower_api_key"
+      "email"
     ],
     "network": [
       "api.predictprotocol.app",
-      "wagerpredict.com",
-      "predict-rpc-proxy.teamatpredict.workers.dev",
-      "api.capsolver.com",
-      "bsc-testnet-rpc.publicnode.com",
-      "bsc-testnet.publicnode.com",
-      "bsc-testnet.bnbchain.org",
-      "bsc-testnet.drpc.org",
-      "data-seed-prebsc-1-s1.binance.org",
-      "data-seed-prebsc-2-s1.binance.org",
-      "www.bnbchain.org",
-      "testnet.bnbchain.org",
-      "bsc-dataseed.binance.org",
-      "bsc-dataseed1.binance.org",
-      "bsc-dataseed1.bnbchain.org",
-      "bsc-rpc.publicnode.com",
-      "1rpc.io",
-      "2captcha.com",
-      "faucet.quicknode.com",
-      "local.adspower.net"
+      "wagerpredict.com"
     ],
-    "chains": [97],
-    "financial_risk": "testnet",
-    "browser": true,
-    "local_services": ["adspower"]
+    "chains": [],
+    "financial_risk": "none",
+    "browser": false,
+    "local_services": []
   },
   "actions": [
     {
-      "id": "farm",
-      "name": "Цикл",
-      "description": "Цепь, кран, ставки, vault и бейджи.",
-      "risk": "testnet_write",
+      "id": "register",
+      "name": "Заявка",
+      "description": "Отправляет кошелёк и почту в очередь mainnet. Повторно уже поданные адреса не трогает.",
+      "risk": "external_write",
       "account_mode": "one_or_more",
       "permissions": {
         "secrets": [
           "evm_private_key",
           "proxy",
-          "email",
-          "capsolver_api_key",
-          "adspower_profile",
-          "adspower_api_key"
+          "email"
         ]
       },
       "resources": {
-        "account": ["private_key", "proxy", "email", "adspower_profile"],
-        "settings": ["capsolver", "adspower_api"]
-      },
-      "referral": {
-        "mode": "project_runtime",
-        "parent_required": false,
-        "parent_access": "shared_read",
-        "permissions": {
-          "secrets": []
-        },
-        "resources": {
-          "account": []
-        }
+        "account": ["private_key", "proxy", "email"],
+        "settings": []
       },
       "options": {
         "type": "object",
@@ -106,10 +71,10 @@
           "account_concurrency": {
             "type": "integer",
             "title": "Параллельные аккаунты",
-            "description": "Сначала цепь строго parent-first, затем фарм всех выбранных аккаунтов сразу в этом числе потоков. Для AdsPower не больше 5.",
+            "description": "Сколько заявок софт отправляет одновременно. Для записи безопаснее держать около трёх.",
             "default": 3,
             "minimum": 1,
-            "maximum": 5,
+            "maximum": 8,
             "multipleOf": 1,
             "x-ui": {
               "group": "Выполнение",
@@ -117,142 +82,17 @@
               "unit": "аккаунтов"
             }
           },
-          "twocaptcha_api_key": {
-            "type": "string",
-            "title": "Ключ 2Captcha",
-            "description": "Capsolver не решает hCaptcha крана BNB Chain. 2Captcha решает её людьми. Без ключа tBNB нужно клеймить вручную.",
-            "default": "",
-            "minLength": 0,
-            "maxLength": 128,
-            "x-ui": {
-              "group": "Выполнение",
-              "order": 1
-            }
-          },
-          "bets_from": {
-            "type": "integer",
-            "title": "Ставок на аккаунт",
-            "description": "Сколько случайных рынков закрыть за запуск. Точное число выбирается в этом диапазоне.",
-            "default": 10,
-            "minimum": 1,
-            "maximum": 30,
-            "multipleOf": 1,
-            "x-ui": {
-              "group": "Рынки",
-              "order": 10,
-              "unit": "ставок",
-              "control": "dual_range",
-              "range": {"id": "bets", "role": "from"}
-            }
-          },
-          "bets_to": {
-            "type": "integer",
-            "title": "Ставок на аккаунт",
-            "description": "Сколько случайных рынков закрыть за запуск. Точное число выбирается в этом диапазоне.",
-            "default": 14,
-            "minimum": 1,
-            "maximum": 30,
-            "multipleOf": 1,
-            "x-ui": {
-              "group": "Рынки",
-              "order": 20,
-              "unit": "ставок",
-              "control": "dual_range",
-              "range": {"id": "bets", "role": "to"}
-            }
-          },
-          "bet_usdc_from": {
-            "type": "integer",
-            "title": "Сумма ставки",
-            "description": "Сколько тестовых USDC ставить на один рынок. Реальная сумма случайная в диапазоне и не больше баланса.",
-            "default": 100,
-            "minimum": 10,
-            "maximum": 10000,
-            "multipleOf": 10,
-            "x-ui": {
-              "group": "Рынки",
-              "order": 30,
-              "unit": "USDC",
-              "control": "dual_range",
-              "range": {"id": "bet_usdc", "role": "from"}
-            }
-          },
-          "bet_usdc_to": {
-            "type": "integer",
-            "title": "Сумма ставки",
-            "description": "Сколько тестовых USDC ставить на один рынок. Реальная сумма случайная в диапазоне и не больше баланса.",
-            "default": 1000,
-            "minimum": 10,
-            "maximum": 10000,
-            "multipleOf": 10,
-            "x-ui": {
-              "group": "Рынки",
-              "order": 40,
-              "unit": "USDC",
-              "control": "dual_range",
-              "range": {"id": "bet_usdc", "role": "to"}
-            }
-          },
-          "vault_usdc_from": {
-            "type": "integer",
-            "title": "Вклад в vault",
-            "description": "Сколько тестовых USDC положить под проценты. На каждый аккаунт софт берёт своё случайное число из диапазона. Ноль — пропустить.",
-            "default": 50,
-            "minimum": 0,
-            "maximum": 15000,
-            "multipleOf": 50,
-            "x-ui": {
-              "group": "Vault",
-              "order": 50,
-              "unit": "USDC",
-              "control": "dual_range",
-              "range": {"id": "vault_usdc", "role": "from"}
-            }
-          },
-          "vault_usdc_to": {
-            "type": "integer",
-            "title": "Вклад в vault",
-            "description": "Сколько тестовых USDC положить под проценты. На каждый аккаунт софт берёт своё случайное число из диапазона. Ноль — пропустить.",
-            "default": 10000,
-            "minimum": 0,
-            "maximum": 15000,
-            "multipleOf": 50,
-            "x-ui": {
-              "group": "Vault",
-              "order": 55,
-              "unit": "USDC",
-              "control": "dual_range",
-              "range": {"id": "vault_usdc", "role": "to"}
-            }
-          },
-          "vault_tier": {
-            "type": "string",
-            "title": "Срок vault",
-            "description": "Чем дольше замок, тем больше очков. Гибкий вклад можно забрать без ожидания.",
-            "default": "flexible",
-            "enum": ["flexible", "lock_90", "lock_180", "lock_365"],
-            "x-ui": {
-              "group": "Vault",
-              "order": 60,
-              "enum_labels": {
-                "flexible": "Без замка, 1× очков",
-                "lock_90": "90 дней, 2× очков",
-                "lock_180": "180 дней, 4× очков",
-                "lock_365": "365 дней, 8× очков"
-              }
-            }
-          },
           "pause_from_ms": {
             "type": "integer",
-            "title": "Пауза между шагами",
-            "description": "Случайная пауза между ставками и аккаунтами. Безопасный ориентир — около секунды.",
-            "default": 800,
-            "minimum": 200,
+            "title": "Пауза перед заявкой",
+            "description": "Случайная пауза перед отправкой. Снижает шанс упереться в лимит проекта.",
+            "default": 400,
+            "minimum": 0,
             "maximum": 8000,
             "multipleOf": 100,
             "x-ui": {
               "group": "Темп",
-              "order": 70,
+              "order": 10,
               "unit": "мс",
               "advanced": true,
               "control": "dual_range",
@@ -261,15 +101,15 @@
           },
           "pause_to_ms": {
             "type": "integer",
-            "title": "Пауза между шагами",
-            "description": "Случайная пауза между ставками и аккаунтами. Безопасный ориентир — около секунды.",
-            "default": 2400,
-            "minimum": 200,
+            "title": "Пауза перед заявкой",
+            "description": "Случайная пауза перед отправкой. Снижает шанс упереться в лимит проекта.",
+            "default": 1200,
+            "minimum": 0,
             "maximum": 8000,
             "multipleOf": 100,
             "x-ui": {
               "group": "Темп",
-              "order": 80,
+              "order": 20,
               "unit": "мс",
               "advanced": true,
               "control": "dual_range",
@@ -284,7 +124,7 @@
     {
       "id": "inspect",
       "name": "Парсинг",
-      "description": "Балансы и ставки. Ничего не меняет.",
+      "description": "Показывает, в списке ли кошелёк и есть ли заявка. Ничего не меняет.",
       "risk": "read",
       "account_mode": "one_or_more",
       "permissions": {
@@ -296,15 +136,12 @@
       },
       "output": {
         "mode": "account_table",
-        "title": "Статистика Wager Predict",
+        "title": "Очередь Wager Predict",
         "primary_kind": "account_snapshot",
         "columns": [
-          {"key": "has_slug", "title": "Свой код", "type": "boolean"},
-          {"key": "referred", "title": "Приглашено", "type": "integer", "aggregate": "sum"},
-          {"key": "bets", "title": "Ставок", "type": "integer", "aggregate": "sum"},
-          {"key": "usdc", "title": "USDC", "type": "decimal_string", "aggregate": "sum"},
-          {"key": "tbnb", "title": "tBNB", "type": "decimal_string"},
-          {"key": "achievements", "title": "Значки", "type": "integer", "aggregate": "sum"}
+          {"key": "allowed", "title": "Допущен", "type": "boolean"},
+          {"key": "requested", "title": "Заявка", "type": "boolean"},
+          {"key": "queue_status", "title": "Статус", "type": "string"}
         ]
       },
       "options": {
@@ -314,9 +151,9 @@
             "type": "integer",
             "title": "Параллельные аккаунты",
             "description": "Сколько профилей проверять одновременно.",
-            "default": 3,
+            "default": 5,
             "minimum": 1,
-            "maximum": 5,
+            "maximum": 10,
             "multipleOf": 1,
             "x-ui": {
               "group": "Выполнение",

@@ -1,6 +1,2 @@
-web3==7.8.0
 eth-account==0.13.5
-eth-abi==5.2.0
 requests==2.32.3
-websocket-client==1.8.0
-playwright==1.52.0
